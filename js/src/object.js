@@ -11,6 +11,9 @@ const dagPB = require('ipld-dag-pb')
 const DAGNode = dagPB.DAGNode
 const bs58 = require('bs58')
 const series = require('async/series')
+const UnixFs = require('ipfs-unixfs')
+const crypto = require('crypto')
+const CID = require('cids')
 
 module.exports = (common) => {
   describe('.object', function () {
@@ -451,6 +454,24 @@ module.exports = (common) => {
             })
           })
         })
+
+        it('supplies unadulterated data', () => {
+          // has to be big enough to span several DAGNodes
+          const data = crypto.randomBytes(1024 * 300)
+
+          return ipfs.files.add({
+            path: '',
+            content: data
+          })
+            .then((result) => {
+              return ipfs.object.get(result[0].hash)
+            })
+            .then((node) => {
+              const meta = UnixFs.unmarshal(node.data)
+
+              expect(meta.fileSize()).to.equal(data.length)
+            })
+          })
       })
 
       describe('.links', () => {
